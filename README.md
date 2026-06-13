@@ -1,27 +1,31 @@
 # AI-HOTDog
 
-Configurable hot-topic radar for Codex. Turn media, search, social discussion, and vertical communities into cited content ideas.
+面向 Codex 的可配置热点选题雷达。把媒体、搜索、社交讨论和垂直社区里的信息，整理成带引用、可复盘、可直接用于内容创作的选题报告。
+
+[English](./README.en.md)
 
 [![Skill](https://img.shields.io/badge/Codex-Skill-black)](./SKILL.md)
-[![Version](https://img.shields.io/badge/version-v0.1.1-blue)](https://github.com/huzoukai/ai-hotdog/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.2-blue)](https://github.com/huzoukai/ai-hotdog/releases)
 [![Self Check](https://img.shields.io/badge/self--check-passing-brightgreen)](./scripts/self_check.py)
 
-AI-HOTDog is a Codex Skill that helps you build a repeatable hotspot workflow: choose a topic, define sources, check account access, scan public and login-state platforms, and generate a Top 10 hotspot report with Top 5 content ideas.
+AI-HOTDog 是一个 Codex Skill。它的目标不是“让 AI 随便搜一圈”，而是帮你搭建一套可长期运行的信息工作流：选择关注主题、定义数据源、检查账号登录状态、扫描公开平台和登录态平台，然后生成一份 `热点 Top 10 + 自媒体选题 Top 5` 的报告。
 
-The default profile monitors AI news, models, tools, open-source projects, papers, and Chinese AI discussion. The underlying workflow is topic-agnostic, so it can also track finance, education, food service, gaming, real estate, parenting, or a custom niche.
+默认配置关注 AI 新闻、大模型、AI 工具、开源项目、论文和中文互联网讨论。但它本质上不是只服务 AI，你也可以用它追踪财经、教育、餐饮、游戏、房产、母婴或任何自定义领域。
 
-## Why This Exists
+## 为什么做这个
 
-Most trend workflows fail in the same place: sources get messy. AI-HOTDog makes the source layer explicit.
+很多热点追踪工作流真正容易乱的地方，不是“能不能总结”，而是“数据源从哪里来、哪些可信、哪些只是热闹”。
 
-- Every selected source has an id, type, region, access mode, priority, required signal, and failure policy.
-- Every report must show source counts, candidate counts, scored counts, cited counts, and source-share percentages.
-- Login-state platforms are treated as supplemental discussion signals unless they point to an official or original source.
-- Blocked platforms are disclosed instead of silently skipped.
+AI-HOTDog 把数据源层显式管理起来：
 
-## What It Produces
+- 每个数据源都有 `source_id`、类型、地区、访问方式、优先级、必需信号和失败处理规则。
+- 每份报告必须展示扫描平台数、候选内容数、进入评分池数量、最终引用数量和来源占比。
+- X、YouTube、知乎、微博等登录态平台默认只作为讨论热度补充，不能单独支撑重大事实判断。
+- 登录失败、验证码、风控、平台受限不会被悄悄跳过，而是写入平台访问状态。
 
-Each report follows this structure:
+## 最终输出
+
+每份报告使用固定结构：
 
 ```text
 # AI-HOTDog 热点选题报告
@@ -36,7 +40,7 @@ Each report follows this structure:
 ## 引用与来源表
 ```
 
-Each hotspot must include:
+每条热点必须包含：
 
 ```text
 标题
@@ -52,26 +56,38 @@ Each hotspot must include:
 置信度
 ```
 
-## Install
+每个选题必须包含：
 
-Clone the skill into your Codex skills folder:
+```text
+选题标题
+核心观点
+适合平台
+开头钩子
+内容结构
+可引用素材
+风险提醒
+```
+
+## 安装
+
+把 Skill 克隆到 Codex 的 skills 目录：
 
 ```bash
 mkdir -p ~/.codex/skills
 git clone https://github.com/huzoukai/ai-hotdog.git ~/.codex/skills/ai-hotdog
 ```
 
-Restart Codex so the skill metadata is picked up.
+然后重启 Codex，让它重新加载 Skill 元数据。
 
-You can then invoke it with:
+之后可以这样调用：
 
 ```text
-Use $ai-hotdog to initialize an AI hotspot radar.
+使用 $ai-hotdog 初始化 AI-HOTDog
 ```
 
-## Quick Start
+## 快速开始
 
-Initialize the default AI profile in a workspace:
+在某个工作区初始化默认 AI 主题：
 
 ```bash
 ~/.codex/skills/ai-hotdog/scripts/init_ai_hotdog.py \
@@ -81,7 +97,7 @@ Initialize the default AI profile in a workspace:
   --core-keywords "AI,large models,AI tools,AI startups"
 ```
 
-This creates non-secret workspace state:
+这会创建一份不含账号密码和敏感凭据的工作区状态：
 
 ```text
 .ai-hotdog/
@@ -90,133 +106,139 @@ This creates non-secret workspace state:
 └── reports/
 ```
 
-Then ask Codex:
+然后对 Codex 说：
 
 ```text
-Use $ai-hotdog to generate today's AI-HOTDog hotspot report.
+使用 $ai-hotdog 生成今日 AI-HOTDog 热点报告
 ```
 
-## Common Commands
+## 常用指令
 
 ```text
 初始化 AI-HOTDog
 ```
 
-Create or update the topic configuration.
+创建或更新关注主题、关键词、地区、平台范围和报告目标。
 
 ```text
 绑定 AI-HOTDog 账号
 ```
 
-Open selected login-state platforms in Chrome so the user can manually log in or handle verification. The skill checks visible access state after the user finishes.
+用 Chrome 打开需要登录的平台，让用户自己完成登录、验证码或权限确认。AI-HOTDog 只检查页面是否能搜索、打开结果、读取公开可见信息。
 
 ```text
 重新绑定 AI-HOTDog 账号：X
 ```
 
-Recheck a single blocked platform without changing other platform states.
+只重新检查一个失效平台，不影响其他平台状态。
 
 ```text
 生成今日 AI-HOTDog 热点报告
 ```
 
-Run the configured radar and generate a cited report.
+基于当前配置执行扫描、评分、归类、引用校验和报告生成。
 
 ```text
 创建 AI-HOTDog 每日自动化
 ```
 
-Create a Codex automation that runs the existing configuration on a schedule. Automations do not enter credentials or perform first-time login.
+创建 Codex 自动化，让它每天定时运行已初始化的配置。自动化不会输入账号密码，也不会处理首次登录。
 
-## Source Strategy
+## 数据源策略
 
-AI-HOTDog ships with 59 default sources across:
+AI-HOTDog 当前内置 59 个默认数据源，覆盖：
 
-- official/original sources
-- news and search
-- social discussion
-- video platforms
-- code/project platforms
-- papers/research
-- product/startup platforms
-- Chinese internet sources
+- 官方/原始发布
+- 新闻媒体与搜索
+- 社交讨论
+- 视频平台
+- 代码/项目平台
+- 论文/研究
+- 产品/创业平台
+- 中文互联网来源
 
-The default AI source pack includes OpenAI, Anthropic, Google DeepMind, Meta AI, Microsoft AI, NVIDIA, xAI, Mistral, Hugging Face, GitHub, arXiv, Papers with Code, Semantic Scholar, OpenReview, Machine Heart, QbitAI, InfoQ China, and other public sources.
+默认 AI 数据源包含 OpenAI、Anthropic、Google DeepMind、Meta AI、Microsoft AI、NVIDIA、xAI、Mistral、Hugging Face、GitHub、arXiv、Papers with Code、Semantic Scholar、OpenReview、机器之心、量子位、InfoQ 中文等公开来源。
 
-See [references/source-registry.md](./references/source-registry.md) for the full registry.
+完整数据源清单见 [references/source-registry.md](./references/source-registry.md)。
 
-## Account Access Model
+## 账号登录模型
 
-AI-HOTDog can use Chrome login state for platforms such as X, YouTube, Zhihu, Weibo, Bilibili, Xiaohongshu, Reddit, and LinkedIn.
+AI-HOTDog 可以借助 Chrome 的已登录状态读取 X、YouTube、知乎、微博、B站、小红书、Reddit、LinkedIn 等平台的公开可见信息。
 
-It does not:
+它不会：
 
-- save usernames or passwords
-- read cookies, local storage, session storage, saved passwords, or raw tokens
-- bypass CAPTCHA, paywalls, risk-control flows, or platform restrictions
-- post, like, comment, follow, subscribe, message, upload, or change account settings
+- 保存用户名或密码
+- 读取 cookies、local storage、session storage、已保存密码或原始 token
+- 绕过验证码、付费墙、风控流程或平台限制
+- 发帖、点赞、评论、关注、订阅、私信、上传文件或修改账号设置
 
-When a platform is blocked, the report lists it under `需要重新绑定的平台`.
+如果某个平台登录失效或访问受限，报告会把它列在 `需要重新绑定的平台` 中。
 
-See [references/login-and-access.md](./references/login-and-access.md).
+详细规则见 [references/login-and-access.md](./references/login-and-access.md)。
 
-## Quality Checks
+## 质量检查
 
-Run the full publish-readiness check:
+运行完整发布前自检：
 
 ```bash
 ~/.codex/skills/ai-hotdog/scripts/self_check.py
 ```
 
-Run individual checks:
+单独检查数据源清单：
 
 ```bash
 ~/.codex/skills/ai-hotdog/scripts/validate_source_registry.py \
   ~/.codex/skills/ai-hotdog/references/source-registry.md
+```
 
+单独检查报告完整性：
+
+```bash
 ~/.codex/skills/ai-hotdog/scripts/check_report_integrity.py \
   /path/to/report.md
 ```
 
-The report checker verifies required sections, Top 10 count, Top 5 count, source-share percentages, citation rows, per-hotspot fields, and placeholder leakage.
+报告检查会验证必需章节、Top 10 数量、Top 5 数量、来源占比、引用表、每条热点字段和模板占位符泄漏。
 
-## Repository Layout
+## 目录结构
 
 ```text
 ai-hotdog/
-├── SKILL.md                         # Skill trigger metadata and workflow router
+├── SKILL.md                         # Skill 触发描述和流程路由
+├── README.md                        # 中文说明
+├── README.en.md                     # English README
 ├── agents/
-│   └── openai.yaml                  # Codex UI metadata
+│   └── openai.yaml                  # Codex UI 元数据
 ├── references/
-│   ├── config-schema.md             # Workspace state schema
-│   ├── login-and-access.md          # Login/rebinding rules
-│   ├── report-template.md           # Report format and strict rules
-│   └── source-registry.md           # Default source registry
+│   ├── config-schema.md             # 工作区状态结构
+│   ├── login-and-access.md          # 登录、绑定、重新绑定规则
+│   ├── report-template.md           # 报告模板和严格规则
+│   └── source-registry.md           # 默认数据源清单
 └── scripts/
-    ├── check_report_integrity.py    # Report quality gate
-    ├── init_ai_hotdog.py            # Workspace initializer
-    ├── self_check.py                # Publish-readiness check
-    └── validate_source_registry.py  # Source registry validator
+    ├── check_report_integrity.py    # 报告质量门
+    ├── init_ai_hotdog.py            # 工作区初始化脚本
+    ├── self_check.py                # 发布前自检
+    └── validate_source_registry.py  # 数据源清单校验
 ```
 
-## Design Notes
+## 设计原则
 
-AI-HOTDog follows common agent-skill packaging patterns:
+AI-HOTDog 使用常见的 agent skill 包装方式：
 
-- `SKILL.md` stays lean and routing-oriented.
-- `references/` holds detailed policies and templates.
-- `scripts/` contains deterministic checks and setup helpers.
-- `agents/openai.yaml` provides Codex-specific UI metadata.
+- `SKILL.md` 保持简洁，只负责触发、路由和关键原则。
+- `references/` 存放详细规则、模板和数据源说明。
+- `scripts/` 存放可重复运行的初始化和校验逻辑。
+- `agents/openai.yaml` 提供 Codex UI 元数据。
 
-This keeps the runtime skill focused while still giving GitHub readers enough context to evaluate, install, and extend it.
+这样做的目的，是让 Codex 运行时不会被过多说明文档拖慢，同时让 GitHub 读者能清楚理解、安装、验证和扩展这个 Skill。
 
-## Roadmap
+## 路线图
 
-- Add optional vertical source packs for finance, education, food service, gaming, and real estate.
-- Add sample generated reports under `examples/`.
-- Add CI for `scripts/self_check.py`.
-- Add a license after the reuse policy is decided.
+- 增加财经、教育、餐饮、游戏、房产等垂直领域数据源包。
+- 增加 `examples/` 示例报告。
+- 增加 GitHub Actions，自动运行 `scripts/self_check.py`。
+- 确定开源许可证。
 
-## License
+## 许可证
 
-No license has been selected yet. Until a license is added, all rights are reserved by default.
+暂未选择开源许可证。添加许可证之前，默认保留所有权利。
