@@ -5,12 +5,14 @@ Configurable hot-topic radar for Codex. Turn media, search, social discussion, a
 [中文说明](./README.md)
 
 [![Skill](https://img.shields.io/badge/Codex-Skill-black)](./SKILL.md)
-[![Version](https://img.shields.io/badge/version-v0.1.2-blue)](https://github.com/huzoukai/ai-hotdog/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.3-blue)](https://github.com/huzoukai/ai-hotdog/releases)
 [![Self Check](https://img.shields.io/badge/self--check-passing-brightgreen)](./scripts/self_check.py)
 
 AI-HOTDog is a Codex Skill that helps you build a repeatable hotspot workflow: choose a topic, define sources, check account access, scan public and login-state platforms, and generate a Top 10 hotspot report with Top 5 content ideas.
 
 The default profile monitors AI news, models, tools, open-source projects, papers, and Chinese AI discussion. The underlying workflow is topic-agnostic, so it can also track finance, education, food service, gaming, real estate, parenting, or a custom niche.
+
+v0.1.3 adds a stricter onboarding flow. Initialization must start by asking what topic to track, what action to automate, how often to run, which platforms to cover, and whether login-state platforms should be authorized now. Before each interactive scan, the skill also checks selected login-state platforms. If an account is not logged in, the user completes QR-code or manual login in Chrome, or chooses to skip those platforms for the run.
 
 ## Why This Exists
 
@@ -73,14 +75,39 @@ Use $ai-hotdog to initialize an AI hotspot radar.
 
 ## Quick Start
 
-Initialize the default AI profile in a workspace:
+Recommended first step: ask Codex to run guided initialization.
+
+```text
+Use $ai-hotdog to initialize AI-HOTDog.
+```
+
+Codex should ask five setup questions:
+
+```text
+1. What topic or industry should it track?
+2. What action should it automate?
+3. How often should it run?
+4. Which platforms should it cover?
+5. Should login-state platforms be authorized now?
+```
+
+For an AI creator workflow, you can answer:
+
+```text
+Use the default AI profile. Generate daily AI Top 10 hotspots and Top 5 content ideas. Cover public search/media, X, YouTube, Zhihu, Weibo, Bilibili, and Xiaohongshu. Check account login now.
+```
+
+If you prefer a script, initialize the default AI profile in a workspace:
 
 ```bash
 ~/.codex/skills/ai-hotdog/scripts/init_ai_hotdog.py \
   --workspace /path/to/workspace \
   --topic "AI" \
   --profile ai \
-  --core-keywords "AI,large models,AI tools,AI startups"
+  --core-keywords "AI,large models,AI tools,AI startups" \
+  --automation-action "daily_hotspot_report" \
+  --automation-schedule "daily 09:00" \
+  --platform-scope login_supplement
 ```
 
 This creates non-secret workspace state:
@@ -95,6 +122,12 @@ This creates non-secret workspace state:
 Then ask Codex:
 
 ```text
+Use $ai-hotdog to authorize AI-HOTDog accounts.
+```
+
+After platform access is checked, generate the report:
+
+```text
 Use $ai-hotdog to generate today's AI-HOTDog hotspot report.
 ```
 
@@ -104,7 +137,13 @@ Use $ai-hotdog to generate today's AI-HOTDog hotspot report.
 初始化 AI-HOTDog
 ```
 
-Create or update the topic configuration.
+Create or update the topic configuration. If no config exists, the skill must ask setup questions first instead of silently creating an empty default.
+
+```text
+授权登录 AI-HOTDog
+```
+
+Check selected login-state platforms one by one. If a platform is not logged in, the user completes QR-code or manual login in Chrome. The user can also skip one platform, skip all login-state platforms, or stop and bind later.
 
 ```text
 绑定 AI-HOTDog 账号
@@ -150,6 +189,14 @@ See [references/source-registry.md](./references/source-registry.md) for the ful
 ## Account Access Model
 
 AI-HOTDog can use Chrome login state for platforms such as X, YouTube, Zhihu, Weibo, Bilibili, Xiaohongshu, Reddit, and LinkedIn.
+
+Account authorization is a preflight check, not credential storage:
+
+```text
+initialize config -> authorize or skip -> verify search/detail access -> generate report
+```
+
+Before each interactive scan, if the configuration includes login-state platforms, AI-HOTDog checks current access first. Recurring automations do not perform first-time login or CAPTCHA handling. If access expires, the report lists the affected platforms under `需要重新绑定的平台` and continues with public sources.
 
 It does not:
 

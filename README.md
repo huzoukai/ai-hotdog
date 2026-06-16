@@ -5,12 +5,14 @@
 [English](./README.en.md)
 
 [![Skill](https://img.shields.io/badge/Codex-Skill-black)](./SKILL.md)
-[![Version](https://img.shields.io/badge/version-v0.1.2-blue)](https://github.com/huzoukai/ai-hotdog/releases)
+[![Version](https://img.shields.io/badge/version-v0.1.3-blue)](https://github.com/huzoukai/ai-hotdog/releases)
 [![Self Check](https://img.shields.io/badge/self--check-passing-brightgreen)](./scripts/self_check.py)
 
 AI-HOTDog 是一个 Codex Skill。它的目标不是“让 AI 随便搜一圈”，而是帮你搭建一套可长期运行的信息工作流：选择关注主题、定义数据源、检查账号登录状态、扫描公开平台和登录态平台，然后生成一份 `热点 Top 10 + 自媒体选题 Top 5` 的报告。
 
 默认配置关注 AI 新闻、大模型、AI 工具、开源项目、论文和中文互联网讨论。但它本质上不是只服务 AI，你也可以用它追踪财经、教育、餐饮、游戏、房产、母婴或任何自定义领域。
+
+v0.1.3 增加了更明确的前置流程：初始化时必须先问用户 5 个问题，确认“关注什么、要自动做什么、多久运行、覆盖哪些平台、是否现在授权登录”；之后在每次互动式扫描前都会先检查所选登录态平台。如果账号未登录，Skill 会引导用户在 Chrome 里扫码或手动登录，也允许本次跳过这些平台继续跑公开来源。
 
 ## 为什么做这个
 
@@ -87,14 +89,39 @@ git clone https://github.com/huzoukai/ai-hotdog.git ~/.codex/skills/ai-hotdog
 
 ## 快速开始
 
-在某个工作区初始化默认 AI 主题：
+推荐先用自然语言让 Codex 进入引导式初始化：
+
+```text
+使用 $ai-hotdog 初始化 AI-HOTDog
+```
+
+Codex 会先问你 5 件事：
+
+```text
+1. 你要关注什么主题/行业？
+2. 你希望它自动做什么动作？
+3. 你希望多久运行一次？
+4. 你要覆盖哪些平台？
+5. 登录态平台要现在授权吗？
+```
+
+如果你正在做 AI 自媒体，可以直接回答：
+
+```text
+用默认 AI 配置。我要每天生成 AI 热点 Top 10 和自媒体选题 Top 5，覆盖公开搜索/媒体、X、YouTube、知乎、微博、B站、小红书。现在先检查账号登录。
+```
+
+如果你只想用脚本创建工作区状态，也可以在某个工作区初始化默认 AI 主题：
 
 ```bash
 ~/.codex/skills/ai-hotdog/scripts/init_ai_hotdog.py \
   --workspace /path/to/workspace \
   --topic "AI" \
   --profile ai \
-  --core-keywords "AI,large models,AI tools,AI startups"
+  --core-keywords "AI,large models,AI tools,AI startups" \
+  --automation-action "daily_hotspot_report" \
+  --automation-schedule "每天 09:00" \
+  --platform-scope login_supplement
 ```
 
 这会创建一份不含账号密码和敏感凭据的工作区状态：
@@ -109,6 +136,12 @@ git clone https://github.com/huzoukai/ai-hotdog.git ~/.codex/skills/ai-hotdog
 然后对 Codex 说：
 
 ```text
+使用 $ai-hotdog 授权登录 AI-HOTDog
+```
+
+完成登录态平台检查后，再生成报告：
+
+```text
 使用 $ai-hotdog 生成今日 AI-HOTDog 热点报告
 ```
 
@@ -118,7 +151,13 @@ git clone https://github.com/huzoukai/ai-hotdog.git ~/.codex/skills/ai-hotdog
 初始化 AI-HOTDog
 ```
 
-创建或更新关注主题、关键词、地区、平台范围和报告目标。
+创建或更新关注主题、关键词、地区、平台范围和报告目标。没有配置时，Skill 必须先提问，不能静默创建空配置。
+
+```text
+授权登录 AI-HOTDog
+```
+
+逐个平台检查 X、YouTube、知乎、微博、B站、小红书等登录态平台。未登录时，用户在 Chrome 中扫码或手动登录；不想登录时，可以跳过单个平台、跳过全部登录态平台，或停止后稍后再绑定。
 
 ```text
 绑定 AI-HOTDog 账号
@@ -164,6 +203,14 @@ AI-HOTDog 当前内置 59 个默认数据源，覆盖：
 ## 账号登录模型
 
 AI-HOTDog 可以借助 Chrome 的已登录状态读取 X、YouTube、知乎、微博、B站、小红书、Reddit、LinkedIn 等平台的公开可见信息。
+
+账号授权是一个前置体检流程，不是保存账号的过程：
+
+```text
+初始化配置 -> 授权登录/跳过 -> 检查能否搜索和打开结果 -> 生成报告
+```
+
+每次互动式扫描前，如果配置里包含登录态平台，AI-HOTDog 都会先检查当前状态。自动化任务不会处理首次登录或验证码；如果账号失效，它会把平台列入 `需要重新绑定的平台`，并继续使用公开来源生成报告。
 
 它不会：
 

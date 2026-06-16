@@ -104,4 +104,5 @@ Use this template for daily or weekly hotspot reports. Keep the report short eno
 - Do not list a social-only rumor as a factual hotspot.
 - Add source ids consistently so the reader can trace each claim.
 - Mark platform failures in `平台访问状态` and include them in the source count.
+- If login-state platforms were skipped or unavailable, say in `数据来源概览` that social/video coverage is based only on public sources plus authorized platforms.
 - If a claim depends on a source that may have changed after capture, say so.

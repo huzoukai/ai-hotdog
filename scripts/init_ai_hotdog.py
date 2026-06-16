@@ -25,9 +25,18 @@ CONTENT_GOALS = {
     "custom",
 }
 
+AUTOMATION_ACTIONS = {
+    "daily_hotspot_report",
+    "content_ideas",
+    "competitor_monitoring",
+    "industry_brief",
+    "custom",
+}
+
 PLATFORM_SCOPES = {"stable_public", "login_supplement", "all"}
 PROFILES = {"ai", "general", "custom"}
 FREQUENCIES = {"manual", "daily", "weekly"}
+AUTH_POLICIES = {"prompt_each_run", "skip_when_unavailable", "public_only"}
 
 
 def csv(value: str) -> list[str]:
@@ -78,6 +87,21 @@ def initial_status(row: dict[str, str]) -> str:
     return "manual_required"
 
 
+def selected_login_sources(rows: list[dict[str, str]], explicit: str) -> list[str]:
+    selected_ids = {row["source_id"] for row in rows}
+    if explicit.strip():
+        requested = csv(explicit)
+        unknown = sorted(set(requested) - selected_ids)
+        if unknown:
+            raise ValueError(f"login sources are not selected or do not exist: {', '.join(unknown)}")
+        return requested
+    return [row["source_id"] for row in rows if row["access_mode"] in {"chrome_login", "manual"}]
+
+
+def default_auth_policy(platform_scope: str) -> str:
+    return "public_only" if platform_scope == "stable_public" else "prompt_each_run"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--workspace", type=Path, required=True, help="Workspace where .ai-hotdog/ should be created")
@@ -88,7 +112,11 @@ def main() -> int:
     parser.add_argument("--entity-keywords", default="", help="Comma-separated brands, people, products, or companies")
     parser.add_argument("--regions", default="global,china", help="Comma-separated regions")
     parser.add_argument("--content-goal", choices=sorted(CONTENT_GOALS), default="content_ideas")
+    parser.add_argument("--automation-action", choices=sorted(AUTOMATION_ACTIONS), default="daily_hotspot_report")
+    parser.add_argument("--automation-schedule", default="manual", help="Human-readable schedule; Codex automation stores the actual schedule")
     parser.add_argument("--platform-scope", choices=sorted(PLATFORM_SCOPES), default="login_supplement")
+    parser.add_argument("--login-sources", default="", help="Comma-separated login-state source ids to check before scans")
+    parser.add_argument("--auth-policy", choices=sorted(AUTH_POLICIES), default=None)
     parser.add_argument("--frequency", choices=sorted(FREQUENCIES), default="manual")
     parser.add_argument("--output-language", default="zh-CN")
     parser.add_argument("--registry", type=Path, default=DEFAULT_REGISTRY)
@@ -119,6 +147,14 @@ def main() -> int:
         return 2
 
     timestamp = now_iso()
+    auth_policy = args.auth_policy or default_auth_policy(args.platform_scope)
+    try:
+        login_sources = selected_login_sources(selected, args.login_sources)
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    if auth_policy == "public_only":
+        login_sources = []
     state_dir.mkdir(parents=True, exist_ok=True)
     reports_dir.mkdir(parents=True, exist_ok=True)
 
@@ -134,7 +170,11 @@ def main() -> int:
         "entity_keywords": csv(args.entity_keywords),
         "regions": sorted(regions),
         "content_goal": args.content_goal,
+        "automation_action": args.automation_action,
+        "automation_schedule": args.automation_schedule,
         "platform_scope": args.platform_scope,
+        "login_sources": login_sources,
+        "auth_policy": auth_policy,
         "frequency": args.frequency,
         "output_language": args.output_language,
         "strict_citation": True,
@@ -153,6 +193,7 @@ def main() -> int:
                 "checked_by": "init",
                 "access_mode": row["access_mode"],
                 "priority": row["priority"],
+                "auth_required": row["source_id"] in login_sources,
                 "evidence_url": row["url_or_query"].replace("{keywords}", args.topic),
                 "usable_signals": [],
                 "notes": "Initialized from source registry.",
@@ -163,7 +204,7 @@ def main() -> int:
 
     config_path.write_text(json.dumps(config, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     status_path.write_text(json.dumps(status, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps({"ok": True, "state_dir": str(state_dir), "selected_sources": len(selected)}, ensure_ascii=False))
+    print(json.dumps({"ok": True, "state_dir": str(state_dir), "selected_sources": len(selected), "login_sources": login_sources, "auth_policy": auth_policy}, ensure_ascii=False))
     return 0
 
 

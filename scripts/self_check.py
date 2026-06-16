@@ -165,8 +165,76 @@ def main() -> int:
         status = json.loads((tmp_path / ".ai-hotdog" / "source-status.json").read_text(encoding="utf-8"))
         if config["report_targets"] != {"hotspots": 10, "content_ideas": 5}:
             raise SystemExit("Config report_targets are incorrect.")
+        if config["automation_action"] != "daily_hotspot_report":
+            raise SystemExit("Config automation_action is incorrect.")
+        if config["auth_policy"] != "prompt_each_run":
+            raise SystemExit("Config auth_policy is incorrect.")
+        if not config["login_sources"]:
+            raise SystemExit("Config login_sources should include default login-state sources.")
         if not status["sources"]:
             raise SystemExit("No sources were initialized.")
+        login_statuses = [item for item in status["sources"].values() if item.get("auth_required")]
+        if not login_statuses:
+            raise SystemExit("No auth_required sources were initialized.")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_path = Path(tmp)
+        run(
+            [
+                python,
+                str(SCRIPT_DIR / "init_ai_hotdog.py"),
+                "--workspace",
+                str(tmp_path),
+                "--topic",
+                "餐饮",
+                "--profile",
+                "general",
+                "--core-keywords",
+                "餐饮,咖啡,开店",
+                "--content-goal",
+                "industry_intelligence",
+                "--automation-action",
+                "industry_brief",
+                "--platform-scope",
+                "stable_public",
+                "--auth-policy",
+                "public_only",
+            ]
+        )
+        config = json.loads((tmp_path / ".ai-hotdog" / "config.json").read_text(encoding="utf-8"))
+        status = json.loads((tmp_path / ".ai-hotdog" / "source-status.json").read_text(encoding="utf-8"))
+        if config["focus_topic"] != "餐饮":
+            raise SystemExit("Non-AI topic initialization failed.")
+        if config["automation_action"] != "industry_brief":
+            raise SystemExit("Non-AI automation_action was not preserved.")
+        if config["auth_policy"] != "public_only":
+            raise SystemExit("Public-only auth_policy is incorrect.")
+        if config["login_sources"]:
+            raise SystemExit("Public-only initialization should not keep login_sources.")
+        if any(item.get("auth_required") for item in status["sources"].values()):
+            raise SystemExit("Public-only initialization should not mark auth_required sources.")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_path = Path(tmp)
+        run(
+            [
+                python,
+                str(SCRIPT_DIR / "init_ai_hotdog.py"),
+                "--workspace",
+                str(tmp_path),
+                "--topic",
+                "AI",
+                "--profile",
+                "ai",
+                "--core-keywords",
+                "AI,large models",
+                "--login-sources",
+                "x_twitter,youtube",
+            ]
+        )
+        config = json.loads((tmp_path / ".ai-hotdog" / "config.json").read_text(encoding="utf-8"))
+        if config["login_sources"] != ["x_twitter", "youtube"]:
+            raise SystemExit("Explicit login_sources were not preserved.")
 
         report = tmp_path / "valid-report.md"
         report.write_text(sample_report(), encoding="utf-8")

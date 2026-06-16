@@ -1,4 +1,4 @@
 interface:
   display_name: "AI-HOTDog"
-  short_description: "Hot topic radar for cited content ideas"
-  default_prompt: "Use $ai-hotdog to initialize a configurable hot topic radar and generate a cited content-idea report."
+  short_description: "Guided hotspot radar with account-access checks"
+  default_prompt: "Use $ai-hotdog to run guided AI-HOTDog initialization, ask setup questions, check selected account logins, and generate a cited hotspot/content-idea report."

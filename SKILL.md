@@ -10,9 +10,12 @@ AI-HOTDog is a configurable hotspot radar for turning media, search, social disc
 ## Operating Principles
 
 - Treat the user's chosen topic as configuration, not as hardcoded AI coverage.
+- Initialization is an interview, not a silent script run. When required setup fields are missing, ask the user first.
 - Prefer stable public sources for the main evidence chain. Use Chrome or Computer Use login-state platforms only as supplemental discussion signals unless a source is an official/original page.
 - Never save passwords, OTPs, cookies, local storage, session stores, or browser profile data.
 - When login, CAPTCHA, risk control, payment wall, or permission prompts block access, hand off to the user and mark the platform status. Do not bypass restrictions.
+- Never silently initialize a new workspace. If `.ai-hotdog/config.json` is missing or incomplete, ask the setup questions first, then create the config.
+- Treat account authorization as a required pre-scan gate for selected login-state sources. The user may bind now, skip selected platforms, or continue with public sources only.
 - Do not put any item into `热点 Top 10` unless it has a primary source URL, source type, capture time, and confidence label.
 - Do not use social discussion as the only evidence for a major factual claim. Pair it with an official, original, media, code, paper, or search/news source.
 - Every report must show scanned source counts, usable source counts, candidate counts, scored counts, final cited counts, and source-share percentages.
@@ -23,6 +26,19 @@ AI-HOTDog is a configurable hotspot radar for turning media, search, social disc
 
 Create or update the workspace radar configuration. Default state directory: `.ai-hotdog/` in the current workspace unless the user provides another path.
 
+If no valid `.ai-hotdog/config.json` exists, the first response must be a setup question. Do not run with empty defaults. Do not create a config until the user has answered or explicitly accepted defaults. Start with this compact setup dialogue:
+
+```text
+先初始化 AI-HOTDog。我需要确认 5 件事：
+1. 你要关注什么主题/行业？例如 AI、财经、教育、餐饮、游戏，默认 AI。
+2. 你希望它自动做什么动作？例如每日热点报告、自媒体选题、竞品监控、行业简报。
+3. 你希望多久运行一次？手动、每天、每周，或者指定时间。
+4. 你要覆盖哪些平台？公开搜索/媒体、X、YouTube、知乎、微博、B站、小红书、Reddit、LinkedIn。
+5. 登录态平台要现在授权吗？可以选择现在绑定、稍后绑定，或本次只跑公开源。
+```
+
+If the user says "用默认 AI 配置" or accepts defaults, set the default AI profile and still ask whether login-state platforms should be authorized now, skipped for this run, or left for later.
+
 Ask for missing high-impact configuration in a compact way:
 
 - `focus_topic`: topic/domain to monitor. Default to the AI profile only when the user asks for AI or accepts the default.
@@ -31,7 +47,11 @@ Ask for missing high-impact configuration in a compact way:
 - `entity_keywords`: brands, companies, people, products, or communities to track.
 - `regions`: global, China, or specific countries/regions.
 - `content_goal`: content ideas, industry intelligence, product opportunities, competitor monitoring, or custom.
+- `automation_action`: the action the automation should perform, such as daily hotspot report, content ideas, competitor monitoring, or industry brief.
+- `automation_schedule`: manual, daily, weekly, or a user-provided time description. Store the human-readable schedule, but leave actual scheduling to Codex automation.
 - `platform_scope`: stable public sources, login-state platforms, or both.
+- `login_sources`: selected login-state platforms that should be checked before scans.
+- `auth_policy`: prompt each interactive run, skip unavailable login platforms, or public sources only.
 - `frequency`: manual, daily, or weekly.
 - `output_language`: default to the user's language.
 
@@ -40,10 +60,33 @@ Use `references/source-registry.md` to build the default source set and source m
 For deterministic setup, run:
 
 ```bash
-python3 scripts/init_ai_hotdog.py --workspace <workspace> --topic "<topic>" --profile ai --core-keywords "<keywords>"
+python3 scripts/init_ai_hotdog.py --workspace <workspace> --topic "<topic>" --profile ai --core-keywords "<keywords>" --automation-action "daily_hotspot_report"
 ```
 
 Read `references/config-schema.md` before creating or editing `.ai-hotdog/config.json` or `.ai-hotdog/source-status.json`.
+
+After initialization, immediately summarize:
+
+- selected topic and action
+- selected schedule/frequency
+- selected public and login-state platforms
+- whether account authorization is required
+- the next recommended command
+
+If any selected source has `access_mode=chrome_login` or `access_mode=manual`, offer to run `授权登录 AI-HOTDog` before the first report. If the user skips, keep those sources in `login_required` or `manual_required` and continue with public sources only.
+
+### 授权登录 AI-HOTDog
+
+Use this immediately after initialization or before a report run when login-state sources are selected.
+
+Read `references/login-and-access.md`. For each selected login-state platform:
+
+1. Open the platform in Chrome.
+2. Check visible login state only.
+3. If logged in, run a safe search with the configured keywords and record `available` or `limited`.
+4. If not logged in, ask the user to complete login or QR-code scan in Chrome.
+5. After the user says it is complete, recheck visible access.
+6. If the user skips or verification remains blocked, record `login_required`, `manual_required`, or `limited` and continue with the next platform.
 
 ### 绑定 AI-HOTDog 账号
 
@@ -62,12 +105,14 @@ Do not change unrelated platform statuses except for a timestamped recheck if th
 Run the configured radar:
 
 1. Load the workspace configuration and source status.
-2. Recheck stable public sources first.
-3. Use accessible login-state platforms for discussion signals.
-4. Collect candidates with title, URL, source id, source type, region, capture time, and matched keywords.
-5. Score candidates for freshness, credibility, discussion, impact, and content value.
-6. Deduplicate related reports into coherent hotspot clusters.
-7. Generate `热点 Top 10`, `自媒体选题 Top 5`, one strongest recommendation, platform status, source-share stats, and a citation table.
+2. If configuration is missing or incomplete, stop scanning and run `初始化 AI-HOTDog` first.
+3. Run the auth preflight gate from `references/login-and-access.md`.
+4. Recheck stable public sources first.
+5. Use only login-state platforms marked `available` or `limited` for discussion signals.
+6. Collect candidates with title, URL, source id, source type, region, capture time, and matched keywords.
+7. Score candidates for freshness, credibility, discussion, impact, and content value.
+8. Deduplicate related reports into coherent hotspot clusters.
+9. Generate `热点 Top 10`, `自媒体选题 Top 5`, one strongest recommendation, platform status, source-share stats, and a citation table.
 
 Read `references/report-template.md` before writing the report. Run `scripts/check_report_integrity.py` on saved reports when a file is produced.
 
@@ -79,7 +124,9 @@ When the user asks for a recurring run, use the Codex automation tool if availab
 Use $ai-hotdog to load the existing AI-HOTDog configuration in this workspace, generate today's cited hotspot report, include source-share statistics, Top 10 hotspots, Top 5 content ideas, platform access status, and any platforms that need rebinding.
 ```
 
-The automation job must not perform first-time login or enter credentials. If a platform loses access during an unattended run, the report must list it under `需要重新绑定的平台`.
+Only create the automation after `.ai-hotdog/config.json` exists. If selected login-state platforms have never been authorized, tell the user to run `授权登录 AI-HOTDog` first or accept that the automation will run public sources only.
+
+The automation job must not perform first-time login, QR-code scan, or credential entry. If a platform loses access during an unattended run, the report must list it under `需要重新绑定的平台` and continue with public sources.
 
 ## Data Quality Gate
 
@@ -91,6 +138,7 @@ Before considering a report complete, confirm all of the following:
 - Each hotspot has a primary fact source, optional discussion sources, capture time, and confidence label.
 - Every citation in `引用与来源表` maps to a visible hotspot, content idea, or source-status note.
 - Any failed or limited source is disclosed in `平台访问状态` and never silently omitted from the source count.
+- If selected login-state sources were skipped, `数据来源概览` must say the report is based on public sources plus any authorized platforms only.
 
 ## Resource Routing
 
